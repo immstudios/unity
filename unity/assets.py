@@ -1,8 +1,5 @@
-
 import os
 from xml.etree import ElementTree as ET
-
-
 
 class AdaptationSet():
     def __init__(self):
@@ -16,8 +13,18 @@ class AdaptationSet():
 
 class Representation():
     def __init__(self):
-        self.s = []
+        self.segments = []
+        self.rattr = {}
+        self.tattr = {}
 
+    def segment_at(self, sec):
+        exc_num = sec * int(self.tattr.get("timescale",1))
+        t =  0
+        for i, d in enumerate(self.segments):
+            if t >= exc_num:
+                return i, d
+            t += d
+        return 1
 
 
 class Asset():
@@ -45,13 +52,12 @@ class Asset():
                     r.tattr = tpl.attrib
 
                     for s in tl:
-                        r.s.extend( int(s.attrib.get("r",1))*[s.attrib["d"]])
+                        r.segments.extend( (int(s.attrib.get("r",0))+1)*[int(s.attrib["d"])])
                     adset.append(r)
 
                 self.adaptation_sets.append(adset)
 
             break
-
 
     def __repr__(self):
         return self.title
@@ -61,7 +67,7 @@ class Asset():
 
 assets = {}
 
-dash_dir = "/opt/dashpack/output"
+dash_dir = "data"
 for f in os.listdir(dash_dir):
     if not f.endswith(".mpd"):
         continue
@@ -70,4 +76,3 @@ for f in os.listdir(dash_dir):
     a.load_from_mpd(os.path.join(dash_dir, f))
     a.title = os.path.splitext(f)[0]
     assets[a.title] = a
-    break

@@ -1,101 +1,68 @@
-#!/usr/bin/env python
-
 import time
+import rfc3339
+
+def indent(l, s):
+    return "{}{}".format(l*" ", s) 
 
 
-class Representation():
-    def __init__(self, adaptation_set, **kwargs):
-        self.adaptation_set = adaptation_set
-        self.params = {
-                
-                }
+MPD_TEMPLATE = """<?xml version="1.0" encoding="utf-8" ?>
+<MPD 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns="urn:mpeg:dash:schema:mpd:2011" 
+    xsi:schemaLocation="urn:mpeg:dash:schema:mpd:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd" 
+    type="dynamic" 
+    availabilityStartTime="{now}" 
+    publishTime="{now}" 
+    timeShiftBufferDepth="PT10S" 
+    minimumUpdatePeriod="PT595H" 
+    maxSegmentDuration="PT5S" 
+    minBufferTime="PT1S" 
+    profiles="urn:mpeg:dash:profile:isoff-live:2011,urn:com:dashif:dash264">
 
+<Period id="1" start="PT0S">
 
-    def __repr__(self):
-        template_attrs = [
-                "duration",
-                "media",
-                "initialization",
-                "startNumber",
-                "liveEdgeNumber"
-                ]
-        
-        representation_attrs = [
-                "id",
-                "bandwidth",
-                "codecs",
-                "audioSamplingRate"
-                ]
-
-        result  = "<Representation"
-        for param in self.params:
-            if params in representation__attrs:
-                result += " {}=\"{}\""
-        result += ">\n"
-
-        result += "    <SegmentTemplate"
-        for param in self.params:
-            if params in template_attrs:
-                result += " {}=\"{}\""
-        result += "/>\n"
-
-        result += "</Representation>"
-
-
-
-
-
-class AdaptationSet():
-    def __init__(self, mpd, **kwargs):
-        self.mpd = mpd
-        self.params = {
-                "mime_type" : ""
-                }
-
-    def __repr__(self):
-        result = "<AdaptationSet\n"
-        for param in self.params:
-            result += " {}=\"{}\""
-        result += "/>\n"
-
-
-        for representation in self.representations:
-            for line in representation.__repr__().split("\n"):
-                result += " "*4 + line + "\n"
-
-        result += "</AdaptationSet>"
- 
+{period}    
+</Period>
+</MPD>
+"""
 
 
 class MPD():
-    def __init__(self):
-        self.adaptation_sets = []
-        self.timestamp = int(time.time())
-    
-    def __repr__(self):
-        result = "<MPD\n" 
-        result += "    xsi:schemaLocation=\"urn:mpeg:dash:schema:mpd:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd\"\n" 
-        result += "    type=\"dynamic\"\n" 
-        result += "    availabilityStartTime=\"2015-07-02T09:56:39Z\"\n" 
-        result += "    publishTime=\"2015-07-02T09:56:39Z\"\n" 
-        result += "    timeShiftBufferDepth=\"PT10S\"\n" 
-        result += "    minimumUpdatePeriod=\"PT595H\"\n" 
-        result += "    maxSegmentDuration=\"PT5S\"\n" 
-        result += "    minBufferTime=\"PT1S\"\n"
-        result += "    profiles=\"urn:mpeg:dash:profile:isoff-live:2011,urn:com:dashif:dash264\"\n"
-        result += "    >\n\n"
+    def __init__(self, asset, start_time, **kwargs):
+        self.asset = asset
+        self.start_time = start_time
+        self.now = time.time()
+        self.kwargs = kwargs
 
-        result += "    <Period id=\"1\" start=\"PT0S\">\n"
+    @property 
+    def presentation_time(self):
+        return self.now - self.start_time
 
-        for adaptation_set in self.adaptation_sets:
-            for line in adaptation_set.__repr__().split("\n"):
-                result += " "*8 + line + "\n"
+    @property
+    def manifest(self):
+        body = ""
 
-        result += "    </Period>\n"
-        result += "</MPD>"
-        return result
+        for adaptation_set in self.asset.adaptation_sets:
+            body += indent(4, "<AdaptationSet {}>\n".format(" ".join(["{}='{}'".format(k, adaptation_set.attr[k]) for k in adaptation_set.attr.keys()]) ))
+            for representation in adaptation_set.representations:
 
+                num, dur = representation.segment_at(self.presentation_time)
 
-if __name__ == "__main__":
-    mpd = MPD()
-    print mpd
+                tpl_params = {
+                    "media"            : representation.tattr["media"], 
+                    "initialization"   : representation.tattr["initialization"],
+                    "timescale"        : representation.tattr["timescale"],
+                    "duration"         : dur,
+                    "start_number"     : num,
+                    "live_edge_number" : num
+                }
+
+                body += indent(8,  "<Representation {}>\n".format(" ".join(["{}='{}'".format(k, representation.rattr[k]) for k in representation.rattr.keys()])))
+                body += indent(12, "<SegmentTemplate duration=\"{duration}\" media=\"{media}\" initialization=\"{initialization}\" startNumber=\"{start_number}\" liveEdgeNumber=\"{live_edge_number}\"/>".format(**tpl_params))
+                body += indent(8,  "</Representation>\n")
+            body += indent(4, "</AdaptationSet>\n\n")
+
+        return MPD_TEMPLATE.format(
+            now=rfc3339.timestamptostr(self.now),
+            period=body
+            )
