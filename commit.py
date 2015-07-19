@@ -1,3 +1,3 @@
 #!/bin/bash
 
-chmod 755 unity.py
+chmod 755 server.py
