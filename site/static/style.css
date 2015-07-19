@@ -1,6 +1,13 @@
+body {
+    background-color: #262626;
+    color: #C3D1E1;
+    padding-top: 50px;
+}
+
+
 #player {
     width  : 960px;
-    height : 540px;
+    min-height : 540px;
     background : black;
     margin : 0 auto;
 }
