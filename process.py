@@ -6,6 +6,12 @@ import time
 import subprocess
 
 
+try:
+    config = json.load(open("local_settings.json"))
+except:
+    config = {}
+
+
 PROFILE = [
         ("s", "960x540"),
         ("pix_fmt", "yuv420p"),
@@ -18,18 +24,13 @@ PROFILE = [
         ("b:a", "128k")
     ]
 
-try:
-    config = json.load(open("local_settings.json"))
-except:
-    config = {}
-    
 
 PACKAGER  = "bin/packager"
 INPUT     = "input"  # Source directory
 INTER     = "inter"
 OUTPUT    = "data"   # Target directory
 
-
+  
 
 def ffmpeg(fin, fout, profile):
     cmd = [
@@ -70,14 +71,21 @@ def packager(fin, fout):
 
 
 
+
 if __name__ == "__main__":
+
     for fname in os.listdir(INPUT):
         fin = os.path.join(INPUT, fname)
-        ftr = os.path.join(INTER, os.path.splitext(fname)[0] + ".mp4")
-        fout = os.path.join(OUTPUT, os.path.splitext(fname)[0])
+        fout = os.path.join(INTER, os.path.splitext(fname)[0] + ".mp4")
 
         if not os.path.exists(ftr):
             ffmpeg(fin, ftr, PROFILE)
 
-        packager(ftr, fout)
 
+    for fname in os.listdir(INTER):
+        fin = os.path.join(INTER, fname)
+        fout = os.path.join(OUTPUT, os.path.splitext(fname)[0])
+
+        if not os.path.exists(fout + ".mpd"):
+            packager(fin, fout) 
+ 
