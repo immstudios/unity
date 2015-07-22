@@ -1,9 +1,8 @@
 DASH_MIME = "application/dash+xml"
 DASH_MIME = "application/xml"
-ERROR_MSG_MIME = "text/plain"
+MSG_MIME  = "text/plain"
 
 MEDIA_MIMES = {
-    ".mp4" : "video/mp4",
     ".m4v" : "video/mp4",
     ".m4a" : "audio/mp4"
 }

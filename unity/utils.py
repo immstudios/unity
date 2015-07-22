@@ -1,3 +1,7 @@
+import os, re
+
+__all__ = ["s2time", "secure_filename"]
+
 
 def s2time(secs, show_secs=True, show_fracs=False):
     """Converts seconds to time"""
@@ -20,4 +24,9 @@ def s2time(secs, show_secs=True, show_fracs=False):
 
 
 
- 
+
+def secure_filename(path):
+    elms = path.split("/")
+    if ".." in elms:
+        return ""
+    return "/".join(elms)

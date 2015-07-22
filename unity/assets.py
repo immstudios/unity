@@ -17,20 +17,29 @@ class Representation():
         self.rattr = {}
         self.tattr = {}
 
+    @property
+    def id(self):
+        return self.rattr.get("id")
+
+    def __len__(self):
+        return len(self.segments)
+
     def segment_at(self, sec):
-        exc_num = sec * int(self.tattr.get("timescale",1))
+        timescale = int(self.tattr.get("timescale",1))
+        exp_time = sec * timescale
         t =  0
         for i, d in enumerate(self.segments):
-            if t >= exc_num:
+            if t >= exp_time:
                 return i, d
             t += d
-        return 1
+        return 0, 2*timescale # wild guess
 
 
 class Asset():
     def __init__(self):
         self.title = "Unnamed asset"
         self.adaptation_sets = []
+        self._duration = 0
 
     def load_from_mpd(self, fname):
         f = open(fname).read()
@@ -42,15 +51,11 @@ class Asset():
                 adset.attr = adaptation_set.attrib
 
                 for representation in adaptation_set:
-
                     r = Representation() 
-                    
                     tpl = representation.find(ns+"SegmentTemplate")
                     tl = tpl.find(ns+"SegmentTimeline")                    
-
                     r.rattr = representation.attrib
                     r.tattr = tpl.attrib
-
                     for s in tl:
                         r.segments.extend( (int(s.attrib.get("r",0))+1)*[int(s.attrib["d"])])
                     adset.append(r)
@@ -64,12 +69,19 @@ class Asset():
 
     @property
     def duration(self):
-        dur = 0
-        r = self.adaptation_sets[0].representations[0]
-        ts = int(r.tattr.get("timescale", 1))
-        for s in r.segments:
-            dur += float(s) / ts
+        if not self._duration:
+            dur = 0
+            r = self.adaptation_sets[0].representations[0]
+            ts = int(r.tattr.get("timescale", 1))
+            for s in r.segments:
+                dur += float(s) / ts
+            self._duration = dur
         return dur
+
+    def segment_at(self, sec):
+        return self.adaptation_sets[0].representations[0].segment_at(sec)
+
+
 
 
 class AssetLibrary():
