@@ -18,6 +18,11 @@ PROFILE = [
         ("b:a", "128k")
     ]
 
+try:
+    config = json.load(open("local_settings.json"))
+except:
+    config = {}
+    
 
 PACKAGER  = "bin/packager"
 INPUT     = "input"  # Source directory

@@ -14,7 +14,7 @@ MPD_TEMPLATE = """<?xml version="1.0" encoding="utf-8" ?>
     availabilityStartTime="{now}" 
     publishTime="{now}" 
     timeShiftBufferDepth="PT10S" 
-    minimumUpdatePeriod="PT595H" 
+    minimumUpdatePeriod="PT5S" 
     maxSegmentDuration="PT5S" 
     minBufferTime="PT1S" 
     profiles="urn:mpeg:dash:profile:isoff-live:2011,urn:com:dashif:dash264">
@@ -34,10 +34,6 @@ class MPD():
         self.now = time.time()
         self.kwargs = kwargs
 
-    @property 
-    def presentation_time(self):
-        return self.now - self.start_time
-
     @property
     def manifest(self):
         body = ""
@@ -46,12 +42,12 @@ class MPD():
             body += indent(4, "<AdaptationSet {}>\n".format(" ".join(["{}='{}'".format(k, adaptation_set.attr[k]) for k in adaptation_set.attr.keys()]) ))
             for representation in adaptation_set.representations:
 
-                num, dur = representation.segment_at(self.presentation_time)
+                num, dur = representation.segment_at(self.start_time)
 
                 tpl_params = {
                     "media"            : representation.tattr["media"], 
                     "initialization"   : representation.tattr["initialization"],
-                    "timescale"        : representation.tattr["timescale"],
+                    "timescale"        : representation.tattr.get("timescale", 1),
                     "duration"         : dur,
                     "start_number"     : num,
                     "live_edge_number" : num

@@ -10,19 +10,59 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 import cgi
+import json
 import time
 import traceback
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 
-from unity.assets import assets
+from unity.assets import AssetLibrary
 from unity.manifest import MPD 
 from unity.mimetypes import *
+from unity.utils import * 
+
+ 
+try:
+    config = json.load(open("local_settings.json"))
+except:
+    config = {}
+  
 
 
 
-SHOW_START = time.time()
+
+class UnityPlaylist():
+    def __init__(self, start_time):
+        self.start_time = start_time
+        self.playlist = []
+
+    def append(self, asset):
+        pos = 0 if not self.playlist else self.playlist[-1][0] + asset.duration
+        self.playlist.append([pos, asset])
+
+    def __len__(self):
+        return len(self.playlist)
+
+    @property
+    def duration(self):
+        dur = 0
+        for s, a in self.playlist:
+            dur += a.duration
+        return dur
+
+    def at_time(self, s):
+        s = s % self.duration
+        print ("Playlist time:", s2time(s))
+
+        for pos, asset in self.playlist:
+            if s >= pos:
+                return asset, s - pos
+       
+    def show(self):
+        for pos, asset in self.playlist:
+            print(s2time(pos), asset)
+        print (s2time(self.playlist[-1][0] + self.playlist[-1][1].duration), "-- Playlist end --")
 
 
 
@@ -63,7 +103,7 @@ class UnityHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/dash/"):
             if ext in MEDIA_MIMES.keys():
                 
-                fname = os.path.join("data", os.path.basename(self.path))
+                fname = os.path.join(self.server.data_path, os.path.basename(self.path))
                 if not os.path.exists(fname):
                     self.result("Media file does not exist.", 404, ERROR_MSG_MIME)
                     return
@@ -78,8 +118,12 @@ class UnityHandler(BaseHTTPRequestHandler):
                     return
 
             else: # get manifest
+                now = time.time()
+
+                asset, tc = playlist.at_time(now - SHOW_START)
+                print (asset, tc)
                 try:
-                    mpd = MPD(assets[os.path.basename(self.path)], SHOW_START)
+                    mpd = MPD(asset, tc)
                     self.result(mpd.manifest)
                 except:
                     error_message = traceback.format_exc()
@@ -116,14 +160,35 @@ class UnityHandler(BaseHTTPRequestHandler):
 class UnityServer(ThreadingMixIn, HTTPServer):
     def __init__(self, server_address, RequestHandlerClass):
         host, port = server_address
-        print ("")
-        print ("*************************************************")
-        print ("* Unity - PseudoLive MPEG DASH streaming server *")
-        print ("*************************************************")
-        print ("")
         HTTPServer.__init__(self, server_address, RequestHandlerClass)
+        
+        print ("")
+        print (" ***************************************************")
+        print (" *                                                 *")
+        print (" *  Unity - PseudoLive MPEG DASH streaming server  *")
+        print (" *                                                 *")
+        print (" ***************************************************")
+        print ("")
+        print ("Running at: {}:{}".format(host, port))
+        print ("")
+
+
+        SHOW_START = time.time() - 500
+
+        self.assets = AssetLibrary(config.get("data_dir", "data"))
+        self.playlist = UnityPlaylist(SHOW_START)
+
+        for asset in self.assets.keys():
+            self.playlist.append(self.assets[asset])
+        self.playlist.show()
+
+
+
+
+
 
 
 if __name__ == "__main__":
-    server = UnityServer(('',8080), UnityHandler)
+    server = UnityServer((config.get("server_address", 'localhost'), config.get("server_port", 8080)), UnityHandler)
+    server.data_path = config.get("data_dir", "data")
     server.serve_forever()

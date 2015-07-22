@@ -62,17 +62,30 @@ class Asset():
     def __repr__(self):
         return self.title
 
+    @property
+    def duration(self):
+        dur = 0
+        r = self.adaptation_sets[0].representations[0]
+        ts = int(r.tattr.get("timescale", 1))
+        for s in r.segments:
+            dur += float(s) / ts
+        return dur
 
 
+class AssetLibrary():
+    def __init__(self, path):
+        self.data = {}
+        for f in os.listdir(path):
+            if not f.endswith(".mpd"):
+                continue
+            a = Asset()
+            a.load_from_mpd(os.path.join(path, f))
+            a.title = os.path.splitext(f)[0]
+            self.data[a.title] = a
 
-assets = {}
+    def keys(self):
+        return self.data.keys()
 
-dash_dir = "data"
-for f in os.listdir(dash_dir):
-    if not f.endswith(".mpd"):
-        continue
+    def __getitem__(self, key):
+        return self.data[key]
 
-    a = Asset()
-    a.load_from_mpd(os.path.join(dash_dir, f))
-    a.title = os.path.splitext(f)[0]
-    assets[a.title] = a
