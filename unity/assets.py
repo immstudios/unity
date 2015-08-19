@@ -1,4 +1,5 @@
 import os
+import json
 from xml.etree import ElementTree as ET
 
 class AdaptationSet():
@@ -13,7 +14,6 @@ class AdaptationSet():
 
 class Representation():
     def __init__(self):
-        self.segments = []
         self.rattr = {}
         self.tattr = {}
 
@@ -21,78 +21,86 @@ class Representation():
     def id(self):
         return self.rattr.get("id")
 
-    def __len__(self):
-        return len(self.segments)
-
-    def segment_at(self, sec):
-        timescale = int(self.tattr.get("timescale",1))
-        exp_time = sec * timescale
-        t =  0
-        for i, d in enumerate(self.segments):
-            if t >= exp_time:
-                return i, d
-            t += d
-        return 0, 2*timescale # wild guess
 
 
 class Asset():
-    def __init__(self):
-        self.title = "Unnamed asset"
+    def __init__(self, fpath):
+        bname = os.path.basename(os.path.splitext(fpath)[0])
+        self.title = bname
+
         self.adaptation_sets = []
-        self._duration = 0
 
-    def load_from_mpd(self, fname):
-        f = open(fname).read()
-        ns = "{urn:mpeg:DASH:schema:MPD:2011}"
-        mpd = ET.XML(f)
-        for period in mpd:
-            for adaptation_set in period:
-                adset = AdaptationSet()
-                adset.attr = adaptation_set.attrib
+        ns = "{urn:mpeg:dash:schema:mpd:2011}"
+        
+        m = json.load(open(os.path.join(fpath, "manifest.json")))
+        self.duration = float(m["duration"])
+        self.segment_duration = float(m["segment_duration"])
+        self.segment_count = int(self.duration / self.segment_duration) + 1
 
-                for representation in adaptation_set:
-                    r = Representation() 
-                    tpl = representation.find(ns+"SegmentTemplate")
-                    tl = tpl.find(ns+"SegmentTimeline")                    
-                    r.rattr = representation.attrib
-                    r.tattr = tpl.attrib
-                    for s in tl:
-                        r.segments.extend( (int(s.attrib.get("r",0))+1)*[int(s.attrib["d"])])
-                    adset.append(r)
+        for id_adset in m["adaptation_sets"]:
+            
+            adset = AdaptationSet()
 
-                self.adaptation_sets.append(adset)
+            for id_repr in m["adaptation_sets"][id_adset]:
+                mfile = os.path.join(fpath, "{}-{}.mpd".format(id_adset, id_repr))
+                mxml = ET.XML(open(mfile).read())
+                xperiod = mxml.find(ns + "Period")
+                xadset = xperiod.find(ns + "AdaptationSet")
+                if not adset.attr:
+                    adset.attr = xadset.attrib
+                
+                r = Representation()
+                xtpl = xadset.find(ns + "SegmentTemplate")
+                xr = xadset.find(ns + "Representation")
+                        
+                r.rattr = xr.attrib
+                r.tattr = xtpl.attrib
 
-            break
+                adset.append(r)
 
-    def __repr__(self):
-        return self.title
 
-    @property
-    def duration(self):
-        if not self._duration:
-            dur = 0
-            r = self.adaptation_sets[0].representations[0]
-            ts = int(r.tattr.get("timescale", 1))
-            for s in r.segments:
-                dur += float(s) / ts
-            self._duration = dur
-        return dur
+            self.adaptation_sets.append(adset)
+
 
     def segment_at(self, sec):
-        return self.adaptation_sets[0].representations[0].segment_at(sec)
+        return int(sec / self.segment_duration) + 1
+  
+    def __repr__(self):
+        return "{} ({} segments)".format(self.title, self.segment_count)
 
 
+#    def load_from_mpd(self, fname):
+#        f = open(fname).read()
+#        ns = "{urn:mpeg:DASH:schema:MPD:2011}"
+#        mpd = ET.XML(f)
+#        for period in mpd:
+#            for adaptation_set in period:
+#                adset = AdaptationSet()
+#                adset.attr = adaptation_set.attrib
+#
+#                for representation in adaptation_set:
+#                    r = Representation() 
+#                    tpl = representation.find(ns+"SegmentTemplate")
+#                    tl = tpl.find(ns+"SegmentTimeline")                    
+#                    r.rattr = representation.attrib
+#                    r.tattr = tpl.attrib
+#                    for s in tl:
+#                        r.segments.extend( (int(s.attrib.get("r",0))+1)*[int(s.attrib["d"])])
+#                    adset.append(r)
+#
+#                self.adaptation_sets.append(adset)
+#
+#            break
 
 
 class AssetLibrary():
     def __init__(self, path):
         self.data = {}
-        for f in os.listdir(path):
-            if not f.endswith(".mpd"):
+        for aname in os.listdir(path):
+            apath = os.path.join(path, aname)
+            if not os.path.exists(os.path.join(apath, "manifest.json")):
                 continue
-            a = Asset()
-            a.load_from_mpd(os.path.join(path, f))
-            a.title = os.path.splitext(f)[0]
+            a = Asset(apath)
             self.data[a.title] = a
 
     def keys(self):
