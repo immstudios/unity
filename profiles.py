@@ -12,7 +12,8 @@ PROFILES = {
 
             ("g", "50"),
             ("keyint_min", "50"),
-            ("x264opts", "keyint=50:min-keyint=50:no-scenecut")
+            ("x264opts", "keyint=50:min-keyint=50:no-scenecut"),
+            ("video_track_timescale", "25")
         ],
 
         "v2400" : [
@@ -27,7 +28,8 @@ PROFILES = {
 
             ("g", "50"),
             ("keyint_min", "50"),
-            ("x264opts", "keyint=50:min-keyint=50:no-scenecut")
+            ("x264opts", "keyint=50:min-keyint=50:no-scenecut"),
+            ("video_track_timescale", "25")
         ],
 
         "v4000" : [
@@ -42,7 +44,8 @@ PROFILES = {
 
             ("g", "50"),
             ("keyint_min", "50"),
-            ("x264opts", "keyint=50:min-keyint=50:no-scenecut")
+            ("x264opts", "keyint=50:min-keyint=50:no-scenecut"),
+            ("video_track_timescale", "25")
         ],
 
 
