@@ -1,6 +1,6 @@
 PROFILES = {
 
-        "v1000" : [
+        "v-1000" : [
             ("an", False),
             ("s", "512x288"),
             ("pix_fmt", "yuv420p"),
@@ -16,7 +16,7 @@ PROFILES = {
             ("video_track_timescale", "25")
         ],
 
-        "v2400" : [
+        "v-2400" : [
             ("an", False),
             ("s", "960x540"),
             ("pix_fmt", "yuv420p"),
@@ -32,7 +32,7 @@ PROFILES = {
             ("video_track_timescale", "25")
         ],
 
-        "v4000" : [
+        "v-4000" : [
             ("an", False),
             ("s", "1920x1080"),
             ("pix_fmt", "yuv420p"),
@@ -49,7 +49,7 @@ PROFILES = {
         ],
 
 
-        "a128" : [
+        "a-128" : [
             ("vn", False),
             ("ar", "48000"),
             ("c:a", "libvo_aacenc"),
