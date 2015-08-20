@@ -156,8 +156,8 @@ class DashPackager():
                 xtpl = xadset.find(NS + "SegmentTemplate")
                 xr = xadset.find(NS + "Representation")
                         
-                m_representation["rattr"] = xr.attrib
-                m_representation["tattr"] = xtpl.attrib
+                m_representation["meta"] = xr.attrib
+                m_representation["template"] = xtpl.attrib
 
                 m_adaptation_set["representations"].append(m_representation)
 
