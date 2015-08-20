@@ -6,9 +6,7 @@ import json
 import time
 import subprocess
 
-
-from profiles import PROFILES
-
+from xml.etree import ElementTree as ET
 
 #
 # TODO: Use nxtools
@@ -28,6 +26,25 @@ def ffmpeg(fin, fout, profile):
     while proc.poll() == None:
         time.sleep(.1)
 
+def ffprobe(fname):
+    if not os.path.exists(fname):
+        return False
+    cmd = [
+        "ffprobe",
+        "-show_format",
+        "-show_streams",
+        "-print_format", "json",
+        fname
+        ]
+    FNULL = open(os.devnull, "w")
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=FNULL)
+    while proc.poll() == None:
+        time.sleep(.1)
+    if proc.returncode:
+        return False
+    return json.loads(proc.stdout.read())
+
+
 
 def get_files(path):
     for fname in os.listdir(path):
@@ -40,122 +57,170 @@ def get_files(path):
 #
 
 
-
-
-# def packager_edash(fin, fout, repr_id):
-#     ext = os.path.splitext(fin)[1]
-#     stream_type = {".m4v":"video", ".m4a":"audio"}[ext]
-#     args = {
-#         "input" : fin,
-#         "output" : fout,
-#         "repr_id" : repr_id,
-#         "ext" : ext,
-#         "stream_type" : stream_type
-#         }
-# 
-#     cmd = """{} """.format(PACKAGER)
-#     cmd+= """'input={input},stream={stream_type},init_segment={output}/{repr_id}-init{ext},segment_template={output}/{repr_id}-$Number${ext}' """.format(**args)
-#     cmd+= """-fragment_duration 2 -segment_duration 2 """
-#     cmd+= """--profile live --mpd_output {output}/{repr_id}.mpd""".format(**args)
-#     print cmd
-# 
-#     proc = subprocess.Popen(cmd, shell=True)
-#     while proc.poll() == None:
-#         time.sleep(.1)
-
-
-
-
-
-
-def check_nums():
-    for bname in os.listdir(OUTPUT):
-        rset = {}
-        for fname in os.listdir(os.path.join(OUTPUT, bname)):
-            ext = os.path.splitext(fname)[1]
-            if not ext in [".m4v", ".m4a"]:
-                continue
-            rid = fname.split("-")[0]
-            if not rid in rset:
-                rset[rid] = 0
-
-            rset[rid] += 1
-        
-        print ""
-        for rid in rset:
-            print rid, rset[rid]
-
-
+NS = "{urn:mpeg:dash:schema:mpd:2011}"
 
 
 class DashPackager():
-    def __init__(self, **kwargs):
+    def __init__(self, source_path, target_dir, profiles, **kwargs):
+
+        #
+        # Default configuration
+        #
+
         self.config = {
-                "segment_duration" : "8000"
+                "segment_duration" : 8000,
+                "temp_dir" : "temp"
                 }
+
         self.config.update(kwargs)
 
+        #
+        # Paths
+        # 
 
-
-    def encode(self, fpath, output_path, profiles):
-        fname = os.path.basename(fpath)
-        bname = os.path.splitext(fname)[0]
-        output_path = os.path.join(output_path, bname)
-
-        try:
-            os.mkdir(output_path)
-        except:
-            pass
-
-        result = True
-
-        for pname in profiles:
-            if pname.startswith("v"):
-                ext = ".m4v"
-            else:
-                ext = ".m4a"
-            fout = os.path.join(output_path, pname + ext) 
-
-            if not os.path.exists(fout):
-                r = ffmpeg(fpath, fout, profiles[pname])
-                result = result and r
-
-        return result
-
-
-    def pack(self, spath, output_path):
+        self.profiles = profiles
+        self.source_path = source_path
+        self.target_dir = target_dir
         
-        bname = os.path.split(spath)[-1]
-        output_path = os.path.join(output_path, bname)
-        
-        try:
-            os.mkdir(output_path)
-        except:
-            pass
+        self.basename = os.path.splitext(os.path.basename(source_path))[0]
+ 
+        if self.config.get("auto_subdir"):
+            self.target_dir = os.path.join(self.target_dir, self.basename)
+
+        if not os.path.exists(self.target_dir):
+            os.makedirs(self.target_dir)
+
+        self.temp_dir = os.path.join(self.config["temp_dir"], self.basename)
+        if not os.path.exists(self.temp_dir):
+            os.makedirs(self.temp_dir)
 
 
-        for fname in os.listdir(spath):
-            fpath = os.path.join(spath, fname)
-            repr_id, ext = os.path.splitext(fname)
-            ext = ext[1:]
+        #
+        # Source metadata
+        #
+
+        probe = ffprobe(source_path)
+        duration = probe["format"]["duration"]
 
 
-            cmd = [
-                "MP4Box",
-                "-dash", self.config["segment_duration"],
-                "-frag", self.config.get("fragment_duration", self.config["segment_duration"]),
-                "-dynamic",
-                "-profile", "dashavc264:live", # "live",
+        #
+        # Manifest skeleton
+        #
 
-                "-segment-name", repr_id + "-",
-                "-segment-ext", ext,
-                "-out", output_path + "/" + repr_id + ".mpd",
-                fpath 
-                    ]
+        self.manifest = {
+                "duration" : duration,
+                "segment_duration" : self.config["segment_duration"] / 1000,
+                "adaptation_sets" : []
+                }
 
-            proc = subprocess.Popen(cmd)
-            while proc.poll() == None:
-                time.sleep(.1)
+
+
+
+
+    def start(self):
+        for adaptation_set in self.profiles:
+
+            m_adaptation_set = {
+                    "meta" : {},
+                    "representations" : []
+                    }
+
+            for representation in adaptation_set["representations"]:
+                
+                #
+                # Create media
+                #
+
+                filename = "{}-{}.mp4".format(
+                        adaptation_set["meta"]["id"],
+                        representation["meta"]["id"],
+                        )
+
+                self.encode(representation["encoding"], filename)
+                m = self.pack(filename, adaptation_set["meta"]["type"])
+
+                #
+                # Update manifest
+                #
+
+
+                m_representation = {}
+
+                mxml = ET.XML(open(m).read())
+                xperiod = mxml.find(NS + "Period")
+                xadset = xperiod.find(NS + "AdaptationSet")
+
+                if not m_adaptation_set["meta"]:
+                    m_adaptation_set["meta"] = xadset.attrib
+                
+                xtpl = xadset.find(NS + "SegmentTemplate")
+                xr = xadset.find(NS + "Representation")
+                        
+                m_representation["rattr"] = xr.attrib
+                m_representation["tattr"] = xtpl.attrib
+
+                m_adaptation_set["representations"].append(m_representation)
+
+            self.manifest["adaptation_sets"].append(m_adaptation_set)
+
+        #
+        # Save manifest
+        #
+
+
+        fp = open(os.path.join(self.target_dir, "manifest.json"), "w")
+        json.dump(self.manifest, fp)
+        fp.close()
+
+
+                
+
+
+
+
+    def encode(self, profile, filename):
+        encode_path = os.path.join(self.temp_dir, filename)
+
+        if os.path.exists(encode_path):
+            return True
+
+        ffmpeg(self.source_path, encode_path, profile)
+
+
+
+
+
+    def pack(self, filename, ftype):
+        bfname = os.path.splitext(filename)[0]
+        ext = "m4a" if ftype == "audio" else "m4v"
+        manifest_path = os.path.join(self.target_dir, bfname + ".mpd")
+
+        # Clean previously created files
+        for f in os.listdir(self.target_dir):
+            if f.startswith(bfname):
+                os.remove(os.path.join(self.target_dir, f))
+       
+        cmd = [
+            "MP4Box",
+            "-dash", self.config["segment_duration"],
+            "-frag", self.config.get("fragment_duration", self.config["segment_duration"]),
+            "-dynamic",
+            "-profile", "dashavc264:live",
+
+            "-segment-name", bfname + "-",
+            "-segment-ext", ext,
+            "-out", manifest_path,
+            os.path.join(self.temp_dir, filename)
+                ]
+
+        proc = subprocess.Popen(str(i) for i in cmd)
+        while proc.poll() == None:
+            time.sleep(.1)
+
+        return manifest_path
+
+
+
 
 
 
@@ -169,19 +234,24 @@ if __name__ == "__main__":
     except:
         config = {}
 
-
-
     source_dir  = config.get("media_input", "input")
     temp_dir    = config.get("media_encoded", "inter")
     output_dir  = config.get("media_dir", "output")
+  
 
-   
-    packager = DashPackager()
+    profiles = json.load(open("profiles.json"))
+
+
     for fpath in get_files(source_dir):
-        packager.encode(fpath, temp_dir, PROFILES)
+        packager = DashPackager(
+                fpath, 
+                output_dir,
+                profiles,
+                temp_dir=temp_dir,
+                force_reencode=False,
+                auto_subdir=True
+                )
 
-
-    for spath in get_files(temp_dir): # get dirs, actually :-)
-        packager.pack(spath, output_dir)
+        packager.start()
 
 
