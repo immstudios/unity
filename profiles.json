@@ -1,0 +1,120 @@
+[
+
+
+{
+    "meta" : {
+        "id" : "a",
+        "type" : "audio"
+    },
+
+
+    "representations" : [
+        {
+            "meta" : {
+                "id" : "128"
+            },
+
+            "encoding" : [         
+                ["vn", false],
+                ["ar", "48000"],
+                ["c:a", "libvo_aacenc"],
+                ["b:a", "128k"],
+                ["force_key_frames", "50"]
+ 
+               ] 
+        }
+
+        ]
+},
+
+
+
+
+{
+    "meta" : {
+        "id" : "v",
+        "type" : "video"
+        },
+
+    "representations" : [
+
+
+        {
+            "meta" : {
+                "id" : "4000"
+            },
+
+            "encoding" : [
+                ["an", false],
+                ["s", "1920x1080"],
+                ["pix_fmt", "yuv420p"],
+
+                ["c:v", "libx264"],
+                ["profile:v", "baseline"],
+                ["level:v", "4.0"],
+                ["b:v", "4000k"],
+
+                ["g", "50"],
+                ["keyint_min", "50"],
+                ["x264opts", "keyint=50:min-keyint=50:no-scenecut"],
+                ["video_track_timescale", "25"]
+               ] 
+        },    
+
+        {
+            "meta" : {
+                "id" : "2400"
+            },
+
+            "encoding" : [
+                ["an", false],
+                ["s", "940x540"],
+                ["pix_fmt", "yuv420p"],
+
+                ["c:v", "libx264"],
+                ["profile:v", "baseline"],
+                ["level:v", "4.0"],
+                ["b:v", "2400k"],
+
+                ["g", "50"],
+                ["keyint_min", "50"],
+                ["x264opts", "keyint=50:min-keyint=50:no-scenecut"],
+                ["video_track_timescale", "25"]
+               ] 
+        },
+
+
+
+
+        {
+            "meta" : {
+                "id" : "1000"
+            },
+
+            "encoding" : [
+                ["an", false],
+                ["s", "512x288"],
+                ["pix_fmt", "yuv420p"],
+
+                ["c:v", "libx264"],
+                ["profile:v", "baseline"],
+                ["level:v", "4.0"],
+                ["b:v", "1000k"],
+
+                ["g", "50"],
+                ["keyint_min", "50"],
+                ["x264opts", "keyint=50:min-keyint=50:no-scenecut"],
+                ["video_track_timescale", "25"]
+               ] 
+        }
+
+
+
+
+
+        ]
+}
+
+
+]
+

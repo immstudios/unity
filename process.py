@@ -118,7 +118,7 @@ class DashPackager():
 
 
     def start(self):
-        for adaptation_set in self.profiles:
+        for i, adaptation_set in enumerate(self.profiles):
 
             m_adaptation_set = {
                     "meta" : {},
@@ -152,15 +152,18 @@ class DashPackager():
 
                 if not m_adaptation_set["meta"]:
                     m_adaptation_set["meta"] = xadset.attrib
+                    m_adaptation_set["meta"]["id"] = adaptation_set["meta"]["id"]
                 
                 xtpl = xadset.find(NS + "SegmentTemplate")
                 xr = xadset.find(NS + "Representation")
                         
                 m_representation["meta"] = xr.attrib
+                m_representation["meta"]["id"] = adaptation_set["meta"]["id"] + "-" + representation["meta"]["id"]
                 m_representation["template"] = xtpl.attrib
 
                 m_adaptation_set["representations"].append(m_representation)
 
+            m_adaptation_set["meta"]["group"] = i + 1
             self.manifest["adaptation_sets"].append(m_adaptation_set)
 
         #
