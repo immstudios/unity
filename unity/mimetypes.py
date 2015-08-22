@@ -3,8 +3,9 @@ DASH_MIME = "application/xml"
 MSG_MIME  = "text/plain"
 
 MEDIA_MIMES = {
-    ".m4v" : "video/mp4",
-    ".m4a" : "audio/mp4"
+    ".m4v" : "video/x-m4v",
+    ".m4a" : "audio/x-m4v",
+    ".mp4" : "video/mp4"
 }
 
 SITE_MIMES = {
