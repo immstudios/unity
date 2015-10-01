@@ -48,9 +48,12 @@ def test():
 
 test()
 
+
+sys.exit()
+
 #if __name__ == '__main__':
 #   cherrypy.quickstart(UnityServer())   
-=======
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
