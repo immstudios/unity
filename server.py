@@ -21,5 +21,31 @@ for pname in os.listdir("vendor"):
     if not pname in sys.path:
         sys.path.append(pname)  
 
+
+
+import cherrypy
+
 from nxtools import *
-from mpd import *
+from mpd import MPD
+
+
+
+
+
+class UnityServer(object):
+    @cherrypy.expose
+    def index(self):
+        return "Hello world!"
+
+
+
+def test():
+    mpd = MPD()
+    p = mpd.add_period()
+    print (mpd.xml)
+
+
+test()
+
+#if __name__ == '__main__':
+#   cherrypy.quickstart(UnityServer())   
