@@ -21,8 +21,6 @@ for pname in os.listdir("vendor"):
     if not pname in sys.path:
         sys.path.append(pname)  
 
-
-
 import cherrypy
 
 from nxtools import *
