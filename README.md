@@ -20,7 +20,9 @@ and "Radio and Television Broadcasting Act" states:
 > unprotected by conditional access for the purpose of simultaneous listening/viewing of the 
 > programme units and other broadcasts
 
-This software aims to create solution which is not covered by these two definitions.
+This software aims to create solution which is not covered by these two definition, thus not
+cotrolled by the [council for radio and television broadcasting](http://www.rrtv.cz) nor
+collective rights managers.
 
 
 Prerequisites
