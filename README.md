@@ -28,6 +28,8 @@ collective rights managers.
 Prerequisites
 -------------
 
- - ffmpeg /w libx264 and Fraunhofer FDK AAC support (use broadcast-tools inst.ffmpeg script)
- - gpac 0.5.2 or higher
+ - ffmpeg /w libx264 and Fraunhofer FDK AAC support 
+   (use broadcast-tools [inst.ffmpeg](https://raw.githubusercontent.com/opennx/broadcast-tools/master/inst.ffmpeg.sh) script)
+ - gpac 0.5.2 or higher (installed automatically with ffmpeg if installer script is used)
  - python 2.7 / 3.X
+ - nginx is definitely useful for production, but not needed for testingn 
