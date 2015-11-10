@@ -7,6 +7,16 @@ import os
 import sys
 import json
 
+#
+# loading configuration file
+#
+
+try:
+    config = json.load(open("local_settings.json"))
+except:
+    config = {}
+
+
 if sys.version_info[:2] < (3, 0):
     reload(sys)
     sys.setdefaultencoding('utf-8')
@@ -22,18 +32,29 @@ for pname in os.listdir("vendor"):
         sys.path.append(pname)  
 
 import cherrypy
+import jinja2
 
 from nxtools import *
-from mpd import *
 from unity import *
 
+#
+# ENV Variables
+#
 
- 
-try:
-    config = json.load(open("local_settings.json"))
-except:
-    config = {}
-  
+MANIFEST_MIME = "text/txt"
+MEDIA_MIME = "txt/txt"
+
+APP_ROOT = os.path.abspath(os.getcwd()) #TODO: use script root instead pwd
+TEMPLATE_ROOT = os.path.join(APP_ROOT, "site", "templates")
+STATIC_ROOT = os.path.join(APP_ROOT, "site", "static")
+
+
+#
+# HTTP Server
+#
+
+
+jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATE_ROOT))
 
 
 def mimetype(type):
@@ -46,26 +67,53 @@ def mimetype(type):
 
 
 class UnityServer(object):
+    def __init__(self):
+        self.unity = Unity()
+
+    @property
+    def context(self):
+        return self.unity.context
+
     @cherrypy.expose
     def index(self):
-        return "Hello world!"
-    
+        tpl = jinja_env.get_template('index.html')
+        return tpl.render(salutation='Hello', target='World')
+
     @cherrypy.expose
-    @mimetype(DASH_MIME)
-    def mpd(self):
+    @mimetype(MANIFEST_MIME)
+    def manifest(self, key):
+        return "manifest for : {}".format(key)
+
+    @cherrypy.expose
+    @mimetype(MEDIA_MIME)
+    def media(self):
         return ""
 
 
 
-def test():
-    mpd = MPD()
-    p = mpd.add_period()
-    print (mpd.xml)
+
+def start_server():
+    app_root = os.path.abspath(os.path.split(sys.argv[0])[0])
+    web_root = os.path.join(app_root, "site")
+
+    conf = {
+
+        '/': {
+            'tools.sessions.on': True,
+            'tools.staticdir.root': APP_ROOT
+            },
+    
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': "./site/static"
+            },
+
+        }
+
+    cherrypy.quickstart(UnityServer(), '/', conf)
 
 
-test()
-sys.exit()
 
-#if __name__ == '__main__':
-#   cherrypy.quickstart(UnityServer())   
 
+if __name__ == '__main__':
+    start_server()
