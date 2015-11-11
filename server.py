@@ -14,6 +14,7 @@ import json
 try:
     config = json.load(open("local_settings.json"))
 except:
+    logging.warning("Unable to open configuration file")
     config = {}
 
 
@@ -66,6 +67,25 @@ def mimetype(type):
     return decorate
 
 
+class MediaServer():
+    def __init__(self, asset, segment):
+        self.buffer_size = 500 * 1024
+        self.path = os.path.join(APP_ROOT, "data", asset, segment)
+        
+    @property
+    def headers(self):
+        return []
+
+    def __call__(self):
+        #TODO: open fallback media if file does not exist
+        rfile = open(self.path, "rb")
+        buff = rfile.read(self.buffer_size)
+        while buff:
+            yield buff
+            buff = rfile.read(self.buffer_size)
+        
+
+
 class UnityServer(object):
     def __init__(self):
         self.unity = Unity()
@@ -86,8 +106,11 @@ class UnityServer(object):
 
     @cherrypy.expose
     @mimetype(MEDIA_MIME)
-    def media(self):
-        return ""
+    def media(self, asset, segment):
+        media = MediaServer(asset, segment)
+        for header, value in media.headers:
+            cherrypy.response.headers[header] = value
+        return media()
 
 
 
