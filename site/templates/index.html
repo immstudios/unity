@@ -6,18 +6,36 @@
     <meta name="description" content="Pseudolinear broadcast server demo">
     <meta name="author" content="imm studios, z.s.">
     
-    <link rel="stylesheet" type="text/css" href="/static/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="/static/css/style.css">
 
 </head>
 <body>
 
+    <div class="container">
 
-    <div class="player_container">
+        <div class="center-block">
+            <video id="player"></video>
+        </div>
+        
+
     </div>
-    
-    
-    <script type="text/javascript" src="/static/js/jquery.1.11.1.js"></script>
-    <script type="text/javascript" src="/static/js/bootstrap.js"></script>
+
+    <script type="text/javascript" src="/static/js/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/static/js/hls.min.js"></script>
+
+    <script>
+      if(Hls.isSupported()) {
+        var player = document.getElementById('player');
+        var hls = new Hls();
+        hls.loadSource('http://sport5.cz:42666/hls/nxtv.m3u8');
+        hls.attachVideo(player);
+        hls.on(Hls.Events.MANIFEST_PARSED,function() {
+          player.play();
+      });
+     }
+    </script>
+
 </body>
 </html>
