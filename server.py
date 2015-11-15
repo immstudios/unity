@@ -6,6 +6,7 @@ from __future__ import print_function
 import os
 import sys
 import json
+import uuid
 
 #
 # loading configuration file
@@ -67,28 +68,12 @@ def mimetype(type):
     return decorate
 
 
-class MediaServer():
-    def __init__(self, asset, segment):
-        self.buffer_size = 500 * 1024
-        self.path = os.path.join(APP_ROOT, "data", asset, segment)
-        
-    @property
-    def headers(self):
-        return []
-
-    def __call__(self):
-        #TODO: open fallback media if file does not exist
-        rfile = open(self.path, "rb")
-        buff = rfile.read(self.buffer_size)
-        while buff:
-            yield buff
-            buff = rfile.read(self.buffer_size)
-        
-
-
 class UnityServer(object):
     def __init__(self):
-        self.unity = Unity()
+        self.unity = Unity(
+                data_dir=os.path.join(APP_ROOT, "data"),
+                fallback_dir=os.path.join(APP_ROOT, "fallback")
+                )
 
     @property
     def context(self):
@@ -96,24 +81,69 @@ class UnityServer(object):
 
     @cherrypy.expose
     def index(self):
+        cookie = cherrypy.request.cookie
+        if "auth_key" in cookie.keys():
+            auth_key = cookie["auth_key"].value
+        else:
+            auth_key = False
+            
+        session_id = self.unity.auth(auth_key)
+        
         tpl = jinja_env.get_template('index.html')
-        return tpl.render(salutation='Hello', target='World')
+        context = {
+            "session_id" : session_id 
+            }
+        return tpl.render(**context)
+
+    @cherrypy.expose
+    def login(self):
+        cookie = cherrypy.response.cookie
+        cookie["auth_key"] = "developer"
+        cookie["auth_key"]["path"] = '/'
+        cookie["auth_key"]["max-age"] = 3600 * 24
+        cookie["auth_key"]["version"] = 1
+        raise cherrypy.HTTPRedirect("/")
+        return "logged in. <a href=\"/\">continue</a>"
+
+
+    @cherrypy.expose
+    def logout(self):
+        cookie = cherrypy.response.cookie
+        cookie["auth_key"] = ""
+        cookie["auth_key"]["path"] = '/'
+        cookie["auth_key"]["max-age"] = 0
+        cookie["auth_key"]["version"] = 1
+        raise cherrypy.HTTPRedirect("/")
+        return "logged out. <a href=\"/\">continue</a>"
+
 
     @cherrypy.expose
     @mimetype(MANIFEST_MIME)
-    def manifest(self, key):
-        return "manifest for : {}".format(key)
+    def manifest(self, session_id):
+        try:
+            return self.unity[session_id].manifest()
+        except KeyError:
+            raise cherrypy.HTTPError(403, "Unauthorized")
 
     @cherrypy.expose
     @mimetype(MEDIA_MIME)
-    def media(self, asset, segment):
-        media = MediaServer(asset, segment)
+    def media(self, segment):
+        bname = os.path.splitext(segment)[0]
+        try:
+            session_id, number = bname.split("-")
+        except:
+            return "TODO: RETURN BAD REQUEST FALLBACK MEDIA"
+        number = int(number)
+        try:
+            media = self.unity[session_id].media(number)         
+        except KeyError:
+            raise cherrypy.HTTPError(403, "Unauthorized")
         for header, value in media.headers:
             cherrypy.response.headers[header] = value
-        return media()
+        return media.serve()
 
 
-
+    media._cp_config = {'response.stream': True}
 
 def start_server():
     app_root = os.path.abspath(os.path.split(sys.argv[0])[0])

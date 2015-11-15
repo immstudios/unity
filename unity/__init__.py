@@ -1,115 +1,57 @@
+import time
 
-
-class UnityItem():
-    def __init__(self, playlist, asset):
-        self.playlist = playlist
-        self.asset = asset
-
-        self.segment_count = self.asset.segment_count
-        self.duration = self.asset.duration
-
-        self.start_time = 0
-        self.start_number = 1
-
-        if self.playlist:
-            prev_item = self.playlist[-1]
-            self.start_time = prev_item.start_time + prev_item.duration
-            self.start_number = prev_item.start_number + self.playlist[-1].segment_count
-
-    @property
-    def duration(self):
-        return self.asset.duration
-
-    @property
-    def end_time(self):
-        return self.start_time + self.duration
-    
-    @property
-    def end_number(self):
-        return self.start_number + self.segment_count - 1
-
-    def __repr__(self):
-        return self.asset.__repr__() + " - starts at no. " + str(self.start_number)
-
-
-
-class UnityPlaylist():
-    def __init__(self):
-        self.playlist = []
-
-    def __getitem__(self, idx):
-        return self.playlist[idx]
-
-    def __len__(self):
-        return len(self.playlist)
-
-    def append(self, asset):
-        item = UnityItem(self, asset)
-        self.playlist.append(item)
-
-    @property
-    def duration(self):
-        dur = 0
-        for item in self.playlist:
-            dur += item.duration
-        return dur
-
-    @property
-    def total_segments(self):
-        n = 0
-        for item in self.playlist:
-            n += item.segment_count
-        return n
-
-    def at_time(self, s):
-        s = s % self.duration
-        for item in self.playlist:
-            if item.end_time >= s:
-                return item
-
-    def at_number(self, n):
-        n = int(n)-1
-        n = (n % self.total_segments) +1
-        for item in self.playlist:
-            if item.start_number <= n <= item.end_number:
-                return item, n - item.start_number + 1
-
-       
-    def show(self):
-        if not self.playlist:
-            print (" -- Playlist is empty --")
-            return
-        for item in self.playlist:
-            print(s2time(item.start_time), item)
-            #print(item.start_time, item.asset)
-        print (s2time(self.playlist[-1].start_time + self.playlist[-1].duration), "-- Playlist end --")
-        print ("\nTotal duration:", s2time(self.duration))
-
-
-
-
-
-
-
-class UnitySession():
-    def __init__(self, key):
-        self.key = key
-        self.offset = 0
-
+from .common import *
+from .session import Sessions
+from .media import Media
 
 class Unity():
-    def __init__(self, parent):
-        self.parent = parent
-        self.free_view = True
-        self.sessions = {}
+    def __init__(self, **kwargs):
+        self.settings = kwargs
+        self.sessions = Sessions(self) 
         self.start_time = time.time()
 
-        self.assets = AssetLibrary(config.get("media_dir", "data"))
-        self.playlist = UnityPlaylist()
+    def auth(self, auth_key):
+        if not auth_key:
+            return False
 
-        for asset in self.assets.keys():
-            self.playlist.append(self.assets[asset])
-        self.playlist.show()
+        # Allow only one active session per user
+        for session_id in self.sessions.keys():
+            if self.sessions[session_id].auth_key == auth_key:
+                logging.debug("Removing old session {} auth key {}".format(session_id, auth_key))
+                del(self.sessions.data[session_id])
+        
+        return self.sessions.new(auth_key)    
+
+
+    def __getitem__(self, key):
+        return self.sessions[key]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class OldShitWhichIsNoLongerUsed():
+
+
 
 
     @property
@@ -133,10 +75,6 @@ class Unity():
 
 
 
-
-
-
-
     def manifest(self, key):
         if not self.is_auth(key):
             return 403, MSG_MIME, "Not authorized"
@@ -149,12 +87,6 @@ class Unity():
 
         mpd = MPD(key, current_item.asset, asset_time, start_number)
         return 200, DASH_MIME, mpd.manifest
-
-
-
-
-
-
 
 
 
@@ -204,90 +136,4 @@ class Unity():
 
 
 
-
-
-
-class UnityHandler(BaseHTTPRequestHandler):
-    def log_request(self, code='-', size='-'):  
-        pass
-
-    @property
-    def unity(self):
-        return self.server.unity
-
-    def do_headers(self, response, mime, headers=[]):
-        self.send_response(response)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-        for h in headers:
-            self.send_header(h[0],h[1])
-        self.send_header('Content-Type', mime)
-        self.end_headers()
-
-    def echo(self, istring):
-        self.wfile.write(istring)
-
-    def result(self, response, mime, data, headers=[]):
-        self.do_headers(mime=mime, response=response, headers=headers)
-        self.echo(data)
-
-    def do_GET(self):
-        if self.path == "/":
-            self.path = "/index.html"
-
-        try:
-            ext = os.path.splitext(self.path)[1]
-        except:
-            ext = ""
-        
-
-        ##
-        ## DASH Content and app
-        ##
-        
-        if self.path.startswith("/dash/"):
-            if ext in MEDIA_MIMES.keys():
-                key, adset_id, repr_id, number = os.path.basename(os.path.splitext(self.path)[0]).split("-")
-                repr_id = adset_id + "-" + repr_id
-                self.result(*self.unity.media(key, repr_id, number, ext))
-
-            elif ext == ".mpd":
-                key = os.path.basename(os.path.splitext(self.path)[0])
-                self.result(*self.unity.manifest(key))
-
-            else:
-                self.result(500, MSG_MIME, "Unknown media type")
-
-
-
-        if self.path.startswith("/direct/") and ext in [".mp4", ".m4v", ".m4a", ".mpd"]:
-            fname = self.server.data_path + self.path.replace("/direct", "")
-            if os.path.exists(fname):
-                mime = {".mpd" : "application/xml", ".m4v" : "video/x-m4v", ".m4a" : "audio/x-m4v", ".mp4" : "video/mp4"}[ext]
-
-                f = open(fname)
-                self.result(200, mime, f.read())
-                f.close()
-                return
-            
-
-        
-        ##
-        ## DEMO SITE
-        ##
-
-        else:
-            if ext in SITE_MIMES.keys():
-                fname = secure_filename(config.get("site_dir", "site") + self.path)
-                try:
-                    f = open(fname)
-                    self.result(200, SITE_MIMES[ext], f.read())
-                    f.close()
-                    return
-                except:
-                    self.result(404, MSG_MIME, "File not found")
-                    return
-            else:
-                self.result(404, MSG_MIME, "Unsuported file type")
-                return
 
