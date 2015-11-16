@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Unity demo site</title>
+    <title>Demo site</title>
     <meta name="description" content="Pseudolinear broadcast server demo">
     <meta name="author" content="imm studios, z.s.">
     
@@ -18,24 +18,32 @@
             <video id="player"></video>
         </div>
         
+    {% if not session_id %}
+        <p>
+        You are not logged in. Click <a href="/login">here</a>
+        </p>
+    {% else %}
+        <p>
+        You are logged in. Click <a href="/logout">here</a> to log out.
+        </p>
+    {% endif%}
+
 
     </div>
+
+    <script>
+        var session_id = "{{ session_id }}";
+    </script>
+
 
     <script type="text/javascript" src="/static/js/jquery-2.1.4.min.js"></script>
     <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="/static/js/hls.min.js"></script>
+    <script type="text/javascript" src="/static/js/boot.js"></script>
 
-    <script>
-      if(Hls.isSupported()) {
-        var player = document.getElementById('player');
-        var hls = new Hls();
-        hls.loadSource('http://sport5.cz:42666/hls/nxtv.m3u8');
-        hls.attachVideo(player);
-        hls.on(Hls.Events.MANIFEST_PARSED,function() {
-          player.play();
-      });
-     }
-    </script>
+    
+
+
 
 </body>
 </html>
