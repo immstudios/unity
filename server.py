@@ -43,9 +43,6 @@ from unity import *
 # ENV Variables
 #
 
-MANIFEST_MIME = "text/txt"
-MEDIA_MIME = "txt/txt"
-
 APP_ROOT = os.path.abspath(os.getcwd()) #TODO: use script root instead pwd
 TEMPLATE_ROOT = os.path.join(APP_ROOT, "site", "templates")
 STATIC_ROOT = os.path.join(APP_ROOT, "site", "static")
@@ -75,10 +72,6 @@ class UnityServer(object):
                 fallback_dir=os.path.join(APP_ROOT, "fallback")
                 )
 
-    @property
-    def context(self):
-        return self.unity.context
-
     @cherrypy.expose
     def index(self):
         cookie = cherrypy.request.cookie
@@ -90,9 +83,8 @@ class UnityServer(object):
         session_id = self.unity.auth(auth_key)
         
         tpl = jinja_env.get_template('index.html')
-        context = {
-            "session_id" : session_id 
-            }
+
+        context = self.unity[session_id].context
         return tpl.render(**context)
 
     @cherrypy.expose
@@ -118,15 +110,21 @@ class UnityServer(object):
 
 
     @cherrypy.expose
-    @mimetype(MANIFEST_MIME)
+    @mimetype("application/x-mpegURL")
     def manifest(self, session_id):
         try:
-            return self.unity[session_id].manifest()
+            manifest = self.unity[session_id].manifest()
         except KeyError:
             raise cherrypy.HTTPError(403, "Unauthorized")
 
+        print ("\n***************************\n")
+        print (manifest)
+        print ("\n***************************\n")
+        return manifest
+
+
+
     @cherrypy.expose
-    @mimetype(MEDIA_MIME)
     def media(self, segment):
         bname = os.path.splitext(segment)[0]
         try:
@@ -142,8 +140,10 @@ class UnityServer(object):
             cherrypy.response.headers[header] = value
         return media.serve()
 
-
     media._cp_config = {'response.stream': True}
+
+
+
 
 def start_server():
     app_root = os.path.abspath(os.path.split(sys.argv[0])[0])
