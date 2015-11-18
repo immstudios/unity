@@ -10,5 +10,6 @@ class Transmission():
     def media(self, segment_number):
         pass
 
+
     def manifest(self, segment_number, format="hls"):
         pass

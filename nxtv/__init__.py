@@ -1,5 +1,7 @@
 from .transmission import Transmission
 
+
+
 class NXTV():
     def __init__(self, **kwargs):
         self.settings = kwargs
