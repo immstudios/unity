@@ -17,32 +17,31 @@ class BaseManifest():
 class HLSManifest(BaseManifest):
     def __call__(self):
 
-        ms = int(self.presentation_time/2)
+
+        
+
 
         result =  """#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:{media_sequence}\n#EXT-X-TARGETDURATION:{target_duration}\n"""
-        result = result.format(
-            media_sequence=ms,
-            target_duration=10
-            )
-
+        
+        
+        playlist = self.session.playlist
+        current_segment = playlist.segment_at_time(self.presentation_time)
+        target_duration = 0
         for i in range(0, 10):
-            result += "#EXTINF:2.000,\n/media/{}-{}.ts\n".format(self.session_id, i+ms)
- 
+            item  = playlist.item_at_segment(current_segment + i)
+            item_segment = current_segment - item.start_segment + i
+            
+            fname, dur = item.segments[item_segment]
+           
+            result += "#EXTINF:{}.\n".format(dur)
+            result += "/media/{}-{}.ts\n".format(self.session_id, current_segment + i)
+            target_duration += dur
 
-        """
-        #EXTINF:6.160,
-        nxtv-544958.ts
-        #EXTINF:6.200,
-        nxtv-544959.ts
-        #EXTINF:6.840,
-        nxtv-544960.ts
-        #EXTINF:5.080,
-        nxtv-544961.ts
-        #EXTINF:9.080,
-        nxtv-544962.ts
-        #EXTINF:5.600,
-        nxtv-544963.ts 
-        """
+        
+        result = result.format(
+            media_sequence=current_segment,
+            target_duration=target_duration
+            )
 
         return result
 
