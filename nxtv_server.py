@@ -26,10 +26,8 @@ for pname in os.listdir("vendor"):
     if not pname in sys.path:
         sys.path.append(pname)  
 
-
 from nxtools import *
 from nxtv import start_server 
-
 
 #
 # Server configuration
@@ -41,13 +39,14 @@ nxtv_config = {
         }
 
 try:
-    config = json.load(open("local_settings.json"))
+    nxtv_config.update(json.load(open("local_settings.json")))
 except:
     logging.warning("Unable to open configuration file")
-    config = {}
 
-
+#
+# Development server.
+#
 
 if __name__ == '__main__':
     logging.info("Starting development server")
-    start_server()
+    start_server(**nxtv_config)
