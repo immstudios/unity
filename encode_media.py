@@ -20,27 +20,16 @@ for pname in os.listdir("vendor"):
 from nxtools import *
  
 #
-# Configuration defaults
-#
-
-try:
-    new_cfg = json.load(open("local_settings.json"))
-except:
-    log_error()
-else:
-    config.update(new_cfg)
-
-#
 # Encoder class itself
 #
 
 class UnityEncoder():
     def __init__(self, path, **kwargs):
-        #
-        # Encoder settings
-        #
-
+        self.input_path = path
+        self.base_name = kwargs.get("base_name", False) or base_name(path)
+        
         self.settings = {
+            "passes" : 2,
             "inter_dir" : "inter",
             "output_dir" : "data",
             "width" : 1280,
@@ -50,32 +39,32 @@ class UnityEncoder():
             "audio_bitrate" : "192k",
             "frame_rate" : 25,
             "x264_preset" : "slow",
-            "x264_profile" : "baseline",
+            "x264_profile" : "main",
             "x264_level" : "4.0",
             "logo" : "resources/logo.png",
             "expand_levels" : True, 
             }
+
         self.settings.update(kwargs)
 
-        #
-        # Paths
-        #
 
-        self.input_path = path
-        self.base_name = self.settings.get("base_name", False) or  base_name(path)
-        
+
+
+    def process(self, **kwargs):   
+        self.settings.update(kwargs)
+
         #
         # FFMPEG Filters
         #
 
         filter_array = []
-        if config.get("logo", False):
-            filter_array.append("movie={}[watermark];[watermark]scale={}:{}[watermark]".format(config["logo"], config["width"], config["height"]))
+        if self.settings.get("logo", False):
+            filter_array.append("movie={}[watermark];[watermark]scale={}:{}[watermark]".format(self.settings["logo"], self.settings["width"], self.settings["height"]))
         filter_array.append("[in]null[out]")
-        if config.get("expand_levels"):
+        if self.settings.get("expand_levels"):
             filter_array.append("[out]colorlevels=rimin=0.0625:gimin=0.0625:bimin=0.0625:rimax=0.9375:gimax=0.9375:bimax=0.9375[out]")
-        filter_array.append("[out]scale={}:{}[out]".format(config["width"], config["height"]))
-        if config.get("logo", False):
+        filter_array.append("[out]scale={}:{}[out]".format(self.settings["width"], self.settings["height"]))
+        if self.settings.get("logo", False):
             filter_array.append("[out][watermark]overlay=0:0[out]")
         filters = ";".join(filter_array)
 
@@ -120,8 +109,10 @@ class UnityEncoder():
             ]
 
 
+        mark_in = self.settings.get("mark_in", False)
+        mark_out = self.settings.get("mark_out", False)
 
-    def process(self):
+
         input_path = self.input_path
         inter_dir = self.settings["inter_dir"]
         inter_path = os.path.join(inter_dir, "{}.mp4".format(self.base_name))
@@ -148,13 +139,30 @@ class UnityEncoder():
        
         ffmpeg(fpath, opath, HLS_PROFILE)
 
+
+
+
+
+
 #
 # 
 #
 
+
 if __name__ == "__main__":
-    pass
 
+    #
+    # Configuration defaults
+    #
+    
+    config = {
+        "input_dir" : "input",
+        "output_dir" :  "output"
+    }
 
+    try:
+        config.update (json.load(open("local_settings.json")))
+    except:
+        log_error()
 
 
