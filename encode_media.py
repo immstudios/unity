@@ -20,7 +20,7 @@ for pname in os.listdir("vendor"):
 from nxtools import *
  
 #
-# Encoder class itself
+# Encoder class
 #
 
 class UnityEncoder():
@@ -36,7 +36,8 @@ class UnityEncoder():
             "height" : 720,
             "pixel_format" : "yuv420p",
             "video_bitrate" : "4000k",
-            "audio_bitrate" : "192k",
+            "audio_bitrate" : "128k",
+            "audio_sample_rate" : 48000,
             "frame_rate" : 25,
             "x264_preset" : "slow",
             "x264_profile" : "main",
@@ -89,16 +90,20 @@ class UnityEncoder():
         self.profile_pass2 = [
                 ["c:a", "libfdk_aac"],
                 ["b:a", self.settings["audio_bitrate"]],
+                ["ar", self.settings["audio_sample_rate"]],
                 ["r", self.settings["frame_rate"]],
                 ["filter:v", filters],
                 ["c:v", "libx264"],
                 ["b:v", self.settings["video_bitrate"]],
-                ["pass", 2],
                 ["profile:v" , self.settings["x264_profile"]],
                 ["level", self.settings["x264_level"]],
                 ["preset:v", self.settings["x264_preset"]],
                 ["video_track_timescale", self.settings["frame_rate"]],
             ]
+
+        if self.settings["passes"] == 2:
+            self.profile_pass2.append(["pass", 2])
+
 
         self.profile_pack = [
                 ["c:v", "copy"],
@@ -108,9 +113,21 @@ class UnityEncoder():
                 ["hls_segment_filename", os.path.join(odir, "720p-%04d.ts")]
             ]
 
+        #
+        # Clip trimming
+        #
 
         mark_in = self.settings.get("mark_in", False)
         mark_out = self.settings.get("mark_out", False)
+        duration = False
+        if mark_out:
+            duration = mark_out
+            if mark_in:
+                duration -= mark_in
+
+        #
+        # Encode media
+        #
 
 
         input_path = self.input_path
@@ -121,23 +138,26 @@ class UnityEncoder():
             os.makedirs(inter_dir)
 
         if not os.path.exists(inter_path):
-            # FIRST PASS
-            ffmpeg(input_path, "/dev/null", self.profile_pass1) #, start=asset["mark_in"] or False, duration=asset.duration)
+            if self.settings["passes"] == 2:
+                # FIRST PASS
+                ffmpeg(input_path, "/dev/null", self.profile_pass1, start=mark_in, duration=duration)
             
-            # SECOND PASS
-            ffmpeg(input_path, inter_path, self.profile_pass2) #, start=asset["mark_in"] or False, duration=asset.duration)
+            # FINAL PASS
+            ffmpeg(input_path, inter_path, self.profile_pass2, start=mark_in, duration=duration)
 
         if not os.path.exists(inter_path):
             return False
-        
-        output_dir = 
 
-        odir = os.path.join(OUTPUT_DIR, bname)
-        if not os.path.exists(odir):
-            os.makedirs(odir)
-        opath = os.path.join(odir, "720p.m3u8")
+        #
+        # Create package
+        #
+
+        output_dir = os.path.join(self.settings["output_dir"], self.base_name)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        output_path = os.path.join(output_dir, "720p.m3u8")
        
-        ffmpeg(fpath, opath, HLS_PROFILE)
+        ffmpeg(inter_path, output_path, self.profile_pack)
 
 
 
