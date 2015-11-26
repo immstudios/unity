@@ -73,6 +73,7 @@ if __name__ == '__main__':
     #
     # Development server
     #
+
     logging.info("Starting development server")    
     cherrypy.quickstart(UnityServer(**unity_config), '/', cherrypy_config)
 
