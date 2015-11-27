@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="player">    
+    <div class="container">
+
+        <!-- VIDEO -->
+        <div class="row">
+                
+                <div class="video-container">
+                    
+                        <video id="player"></video>
+                    
+                </div>
+
+        </div>
+
+
+        <!-- FEATURES IN VIDEO SECTION -->
+        <div class="row video-features">
+            <div class="col-md-10 col-md-offset-1">
+                <div class="row">
+                    <div class="col-md-4 col-sm-4">
+                        <a href="#"><h5><i class="fa fa-heart colored-text inline-icon"></i> Love it!</h5></a>
+                    </div>
+                    <div class="col-md-4 col-sm-4">
+                        <a href="#"><h5><i class="fa fa-star-half-o colored-text inline-icon"></i> Not in the mood... </h5></a>
+                    </div>
+                    <div class="col-md-4 col-sm-4">
+                        <a href="#"><h5><i class="fa fa-thumbs-down colored-text inline-icon"></i> Hate it! </h5></a>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- /END FEATURES IN VIDEO SECTION -->
+
+
+    </div>
+</section>
+{% endblock %}

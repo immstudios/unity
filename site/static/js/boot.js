@@ -53,10 +53,12 @@ function start_stream(){
 
 
 $(document).ready(function() {
-    if (session_id == "False") {} 
-    else {
-        start_stream();
-    }
+
+    jQuery(".status").fadeOut();
+    jQuery(".preloader").delay(1000).fadeOut("slow");
+
+
+
 
 });
 

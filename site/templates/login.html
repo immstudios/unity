@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="login">
+    <!-- HEADING, FEATURES AND REGISTRATION FORM CONTAINER -->
+    <div class="container">
+        
+        <div class="row">
+            
+            <!-- LEFT - HEADING AND TEXTS -->
+            <div class="col-md-7 col-sm-7">
+            
+
+                    <h1 class="intro text-left">Explore the awesomeness</h1>
+
+                <!-- DETAILS WITH LIST -->
+                <div class="intro text-left">
+                    <p>
+                        This site requires login. Yes, we know it sucks but it is really needed.t.
+                    </p>
+                    
+                </div>
+            </div>
+            
+            <!-- RIGHT - REGISTRATION FORM -->
+            
+            <div class="col-md-5 col-sm-5">
+                
+                <div class="vertical-registration-form">
+                    <div class="colored-line">
+                    </div>
+                    <h3>Login</h3>
+                    <form class="registration-form" id="register" role="form" method="post">
+                        <input class="form-control input-box" id="name" type="text" name="name" placeholder="login">
+                        <input class="form-control input-box" id="password" type="password" name="password" placeholder="password">
+                        <button class="btn standard-button" type="submit" id="submit" name="submit">Login</button>
+                    </form>
+                </div>
+            </div>
+            <!-- /END - REGISTRATION FORM -->
+        </div>
+        
+    </div>
+    
+</div>
+</section>
+{% endblock %}
