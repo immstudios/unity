@@ -17,7 +17,7 @@ manifest_headers = [
 class UnityServer():
     def __init__(self, **kwargs):
         self.settings = kwargs
-        self.transmissions = Transmissions(self)
+#        self.transmissions = Transmissions(self)
 
         #TODO: Template root
         template_root = "site/templates"
@@ -26,11 +26,22 @@ class UnityServer():
                 )
 
 
+
     @cherrypy.expose
-    def index(self):
-        tpl = self.jinja.get_template('index.html')
+    def default(self):
+        tpl = self.jinja.get_template('error.html')
         context = {}
         return tpl.render(**context)
+
+
+    @cherrypy.expose
+    def index(self):
+        tpl = self.jinja.get_template('player.html')
+        context = {}
+        return tpl.render(**context)
+
+
+
 
 
     @cherrypy.expose

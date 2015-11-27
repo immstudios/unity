@@ -1,7 +1,17 @@
 unity
 =====
 
-*Pseudolinear streaming server*
+*Pseudolinear broadcast server for next-gen nxtv*
+
+About the project
+-----------------
+
+### What is it?
+
+Personalized video stream for lazy people.
+
+
+### Premises
 
 Czech "On-demand Audiovisual Media Services Act" states:
 
@@ -23,6 +33,11 @@ and "Radio and Television Broadcasting Act" states:
 This software aims to create solution which is not covered by these two definition, thus not
 cotrolled by the [council for radio and television broadcasting](http://www.rrtv.cz) nor
 collective rights managers.
+
+
+### About the demo
+
+Broadcasted content is taken from [nxtv](http://www.nxtv.cz) project. 
 
 
 Prerequisites
