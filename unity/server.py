@@ -27,6 +27,9 @@ class UnityServer():
     def index(self):
         id_user = cherrypy.session.get("id_user")
 
+        logging.debug(cherrypy.session.keys())
+        logging.debug("id user is", id_user)
+
         if not id_user:
             tpl = self.jinja.get_template("login.html")
         else:
@@ -45,8 +48,10 @@ class UnityServer():
     @cherrypy.expose
     def login(self, login, password, **kwargs):
         if login=="demo" and password == "demo":
+            logging.goodnews("Successfully logged in as", login)
             cherrypy.session["id_user"] = 1
         else:
+            logging.error("Login failed for user", login, "with password", password)
             cherrypy.session["id_user"] = False
         raise cherrypy.HTTPRedirect("/")
 

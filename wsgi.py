@@ -8,17 +8,6 @@ import sys
 import json
 import uuid
 
-#
-# loading configuration file
-#
-
-try:
-    config = json.load(open("local_settings.json"))
-except:
-    logging.warning("Unable to open configuration file")
-    config = {}
-
-
 if sys.version_info[:2] < (3, 0):
     reload(sys)
     sys.setdefaultencoding('utf-8')
@@ -42,6 +31,13 @@ from unity import *
 #
 # Configuration
 #
+
+try:
+    config = json.load(open("local_settings.json"))
+except:
+    logging.warning("Unable to open configuration file")
+    config = {}
+
 
 APP_ROOT = os.path.abspath(os.path.split(sys.argv[0])[0])
 TEMPLATE_ROOT = os.path.join(APP_ROOT, "site", "templates")
@@ -83,4 +79,9 @@ else:
     # WSGI entry point
     #
 
-    app = cherrypy.tree.mount(UnityServer(**unity_config), '/', cherrypy_config)
+    cherrypy.server.unsubscribe()
+    cherrypy.engine.start()
+
+    def application(environ, start_response):
+        cherrypy.tree.mount(UnityServer(**unity_config), '/', cherrypy_config)
+        return cherrypy.tree(environ, start_response)
