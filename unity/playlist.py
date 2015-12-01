@@ -71,9 +71,9 @@ class PlaylistItem():
 
 
 class Playlist():
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.items = []
-        self.base_name = "shite"
+        self.base_name = kwargs.get("basename", "main")
         self.start_time = time.time()
 
 

@@ -1,3 +1,4 @@
+import uuid
 from .playlist import Playlist
 
 
@@ -5,6 +6,10 @@ class Transmission():
     def __init__(self, parent, id_user, **kwargs):
         self.id_user = id_user
         self.kwargs = kwargs
+        self.guid = str(uuid.uuid1()).replace("-", "")
+        self.playlist = Playlist(
+                basename=self.guid
+                )
         self.accessed()
 
     def accessed(self):

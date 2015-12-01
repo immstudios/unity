@@ -1,0 +1,3 @@
+[submodule "vendor/nxtools"]
+	path = vendor/nxtools
+	url = https://github.com/martastain/nxtools

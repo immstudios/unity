@@ -17,7 +17,7 @@ class UnityServer():
         self.settings = kwargs
         self.transmissions = Transmissions(self)
 
-        template_root = "site/templates" #TODO: Template root
+        template_root = self.settings.get("template_root", "site/templates")
         self.jinja = jinja2.Environment(
                 loader=jinja2.FileSystemLoader(template_root)
                 )
@@ -26,9 +26,7 @@ class UnityServer():
     @cherrypy.expose
     def index(self):
         id_user = cherrypy.session.get("id_user")
-
-        logging.debug(cherrypy.session.keys())
-        logging.debug("id user is", id_user)
+        logging.debug("User ID {} requested index page".format(id_user))
 
         if not id_user:
             tpl = self.jinja.get_template("login.html")
@@ -53,7 +51,7 @@ class UnityServer():
         else:
             logging.error("Login failed for user", login, "with password", password)
             cherrypy.session["id_user"] = False
-        raise cherrypy.HTTPRedirect("/")
+        raise cherrypy.HTTPRedirect(kwargs.get("from_page", "/"))
 
 
     @cherrypy.expose

@@ -56,11 +56,6 @@ docs/_build/
 # PyBuilder
 target/
 
-
-
-
-
 data/
 local_settings.json
-vendor/
 _old/
