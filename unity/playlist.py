@@ -1,6 +1,7 @@
-#!/usr/bin/env python
 import os
 import time
+
+from nxtools import *
 
 
 class Segment():
@@ -18,54 +19,136 @@ def parse_m3u8(fpath):
             dur = float(inf.split(",")[0])
             fname = lines[i+1]
             yield Segment(fname, dur)
-            
 
-class PlaylistItem():
-    def __init__(self, playlist, index):
-        self.playlist = playlist
-        self.index = index
+
+class Clip():
+    def __init__(self):
+        self.media_server = "media.nxtv.cz:8085"
+        self.path = ""
         self.segments = []
-
-        if index == 0:
-            self.start_segment = 0
-            self.start_time = 0
-        else:
-            prev_segment = self.playlist[index - 1]
-            self.start_segment = prev_segment.start_segment + prev_segment.segment_count
-            self.start_time = prev_segment.start_time + prev_segment.duration        
+        self.meta = {}
         self.segment_count = 0
         self.duration = 0
-        self.name = ""
-
- 
-    def __getitem__(self, key):
-        return self.segments[key]
 
     def __repr__(self):
-        return ("{:>04d}  {}".format(self.start_segment, self.name))
+        return "{}".format(self.meta.get("title", self.path))
 
-    def from_m3u8(self, path):
-        self.asset_dir = os.path.split(path)[0]
-        self.name = os.path.split(self.asset_dir)[1]
-        for segment in parse_m3u8(path):
-            segment.path = os.path.join(self.asset_dir, segment.path)
+    def __getitem__(self, key):
+        return self.meta[key]
+
+    def media_url(self, variant, segment):
+        return "http://{}/{}/{}-{:04d}.ts".format(self.media_server, self.path, variant, segment)
+
+    def add_variant(self, manifest_path):
+        for segment in parse_m3u8(manifest_path):
             self.segments.append(segment)
             self.segment_count += 1
             self.duration += segment.duration
 
-    def segment_at_time(self, t):
+    def segment_at_time(self, sec):
         at_time = 0
         at_segment = 0
         for segment in self.segments:
             at_time += segment.duration
-            if at_time > t:
+            if at_time > sec:
                 return at_segment
             at_segment += 1
         return 0
             
 
-    def file_at_segment(self, i):
+    def file_at_segment(self, i, vari):
         return self.segments[i][0]
+
+
+
+
+
+
+class Library():
+    def __init__(self):
+        self.data = {}
+        
+        """
+        TODO:
+        - __getitem__ from memcached
+        - nebula based loader
+        """
+
+        ##################
+        ## DEMO LOADER
+        data_path = "data"
+        for id_asset, asset_title in enumerate(os.listdir(data_path)):
+            clip = Clip()
+            clip.path = asset_title
+            clip.add_variant(os.path.join(data_path, asset_title, "720p.m3u8"))
+            self[id_asset] = clip
+        ## DEMO LOADER
+        ###################
+
+    def keys(self):
+        return self.data.keys()
+
+    def __setitem__(self, key, value):
+        assert isinstance(value, Clip)
+        self.data[key] = value
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def show(self):
+        print "\nUnity clip library:"
+        for id_clip in self.data:
+            print " - ", id_clip, ":",  self.data[id_clip]
+        print ""    
+
+
+mediatheque = Library()
+
+
+
+
+
+
+
+
+
+            
+
+class PlaylistItem():
+    def __init__(self, playlist, index, id_clip):
+        self.playlist = playlist
+        self.index = index
+        self.id_clip = id_clip
+
+        if index == 0:
+            self.start_segment = 0
+            self.start_time = 0
+        else:
+            prev_item = self.playlist[index - 1]
+            self.start_segment = prev_item.start_segment + prev_item.segment_count
+            self.start_time = prev_item.start_time + prev_item.duration        
+   
+    @property
+    def clip(self):
+        return mediatheque[self.id_clip]
+    
+    @property
+    def segments(self):
+        return self.clip.segments
+
+    @property
+    def segment_count(self):
+        return self.clip.segment_count
+
+    @property
+    def duration(self):
+        return self.clip.duration
+
+    def segment_at_time(self, t):
+        return self.clip.segment_at_time(t)
+
+    def __repr__(self):
+        return "{} : {}".format(self.index, self.clip)
 
 
 
@@ -73,47 +156,31 @@ class PlaylistItem():
 class Playlist():
     def __init__(self, **kwargs):
         self.items = []
-        self.base_name = kwargs.get("basename", "main")
         self.start_time = time.time()
-
-
-    def mk_demo(self, data_path):
-        for asset_name in os.listdir(data_path):
-            self.add(os.path.join(data_path, asset_name, "720p.m3u8"))
-        
+        for i in mediatheque.keys():
+            self.add(i)
+        self.show()
 
     def show(self):
-        print ("\n")
-        print ("**********************************")
+        print "\n"+40*"*"+"\n"+"\n".join([" - "+r.__repr__() for r in self.items])+"\n"+40*"*"+"\n" # HE HE HE :)
 
-        for f in self.items:
-            print (f)       
- 
-        print ("**********************************")
-        print ("\n")
+    def add(self, id_clip):
+        self.items.append(PlaylistItem(self, len(self.items), id_clip))
 
-
-    def add(self, fname):
-        self.items.append(PlaylistItem(self, len(self.items)))
-        self.last.from_m3u8(fname)
-
-    
     def __getitem__(self, key):
         return self.items[key]
-
 
     @property
     def last(self):
         return self.items[-1]        
 
-    
+
     def item_at_segment(self, segment):
         litem = self.items[0]
         for item in self.items:
             if item.start_segment > segment:
                 break
             litem = item
-        
         return litem
 
 
@@ -124,23 +191,26 @@ class Playlist():
                 break
             litem = item
         else:
+            logging.error("Unable to find item at timestamp", int(presentation_time))
             return False
         return litem
 
 
     def segment_at_time(self, presentation_time):
         item = self.item_at_time(presentation_time)
+        if not item:
+            return False
         item_time = presentation_time - item.start_time
         return item.start_segment + item.segment_at_time(item_time)
 
 
-    def file_at_segment(self, i):
-        item = self.item_at_segment(i)
-        item_segment = i - item.start_segment
-        return item.segments[item_segment].path
+    def media(self, variant, segment):
+        item = self.item_at_segment(segment)
+        item_segment = segment - item.start_segment
+        return item.clip.media_url(variant, item_segment)
 
 
-    def manifest(self, **kwargs):
+    def manifest(self, variant="720p"):
         presentation_time = time.time() - self.start_time
         starting_item = self.item_at_time(presentation_time)
         starting_item_time = presentation_time - starting_item.start_time
@@ -148,61 +218,29 @@ class Playlist():
         last_item_index = starting_item.index
         target_duration = 0
 
-        result =  """#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:{media_sequence}\n#EXT-X-TARGETDURATION:{target_duration}\n"""
+        result = "#EXTM3U\n"
+        result+= "#EXT-X-VERSION:3\n"
+        result+= "#EXT-X-MEDIA-SEQUENCE:{media_sequence}\n"
+        result+= "#EXT-X-TARGETDURATION:{target_duration}\n"
 
         for i in range(4):
 
             current_item = self.item_at_segment(media_sequence + i)
             item_segment_index = media_sequence + i - current_item.start_segment
-            segment = current_item[item_segment_index]
+            segment = current_item.segments[item_segment_index]
 
             if current_item.index != last_item_index:
                 result += "#EXT-X-DISCONTINUITY\n"
                 last_item_index = current_item.index
 
             result += "#EXTINF:{},\n".format(segment.duration)
-            result += "/media/{}-{}.ts\n".format(self.base_name, media_sequence + i)
-
+            result += "/media/{}-{}.ts\n".format(variant, media_sequence + i)
 
             target_duration = int(max(target_duration, segment.duration))
 
-
-
-        """
-        i=0
-        target_duration = 0
-    
-        for item in self.items:
-            if i > 0:
-                result += "#EXT-X-DISCONTINUITY\n"
-            for segment in item.segments:
-                result += "#EXTINF:{},\n".format(segment.duration)
-                result += "/media/{}-{}.ts\n".format(self.base_name, i)
-
-                i+=1
-                target_duration = int(max(target_duration, segment.duration))
-
-                if i == kwargs.get("segments", 4):
-                    break
-            else:
-                continue
-
-            break
-        """
-
-        
         result = result.format(
             media_sequence=media_sequence,
             target_duration=target_duration+1
             )
-
         return result
 
-
-
-
-
-if __name__ == "__main__":
-    playlist = Playlist()
-    playlist.mk_demo("data")
-    print (playlist.manifest())
