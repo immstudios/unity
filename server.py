@@ -69,6 +69,10 @@ if __name__ == '__main__':
     #
     # Development server
     #
+    cherrypy.config.update({
+        'server.socket_host': '127.0.01',
+        'server.socket_port': 12000,
+        })
 
     logging.info("Starting development server")    
     cherrypy.quickstart(UnityServer(**unity_config), '/', cherrypy_config)
