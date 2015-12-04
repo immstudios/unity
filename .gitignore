@@ -53,9 +53,9 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-# PyBuilder
-target/
 
 data/
 local_settings.json
 _old/
+
+vendor/nxtools
