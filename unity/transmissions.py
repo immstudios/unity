@@ -1,6 +1,7 @@
 import uuid
-from .playlist import Playlist
+import time
 
+from .playlist import Playlist
 
 class Transmission():
     def __init__(self, parent, id_user, **kwargs):
@@ -12,15 +13,25 @@ class Transmission():
                 )
         self.accessed()
 
+        self.latest_segment = 0
+
+    def dump(self):
+        return {
+            "id_user" : self.id_user,
+            "playlist" : self.playlist.dump,
+            }
+
+    def remaining_time(self):
+        pass
+
     def accessed(self):
         self.last_access = time.time()
 
-    def media(self, segment_number):
-        pass
+    def media(self, variant, segment):
+        return self.playlist.media(variant, segment)
 
-
-    def manifest(self, segment_number, format="hls"):
-        pass
+    def manifest(self, variant):
+        return self.playlist.manifest(variant)
 
 
 
@@ -28,7 +39,6 @@ class Transmissions():
     def __init__(self, parent):
         self.parent = parent
         self.data = {}
-
 
     @property
     def settings(self):
@@ -48,9 +58,9 @@ class Transmissions():
             if time.time() - transmission.last_access > max_age:
                 del(self.data[id_user])
 
-    def __getitem__(self, key):
-        if key in self.data:
-            self.data[key].accessed()
-            return self.data[key]
-        return False
+    def __getitem__(self, id_user):
+        if not id_user in self.data:
+            self.create(id_user)
+        self.data[id_user].accessed()
+        return self.data[id_user]
 
