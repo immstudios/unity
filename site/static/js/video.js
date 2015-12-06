@@ -1,5 +1,5 @@
 function start_stream(){
-    var manifest_url = '/manifest';
+    var manifest_url = '/manifest/720p';
     var fallback_video = '/static/video/unsupported.mp4';
     var player = document.getElementById('player');
 
@@ -38,5 +38,14 @@ function start_stream(){
 
 } // function start_stream()
 
+
+
+
+
+
+
+$(document).ready(function() {
+    start_stream();
+});
 
 

@@ -5,7 +5,7 @@ html {
 body {
     background-color: black;
     
-    background: url(/static/img/bg-image-1.jpg) no-repeat center top fixed;
+    background: url(/static/img/bg-image-2.jpg) no-repeat center top fixed;
     -webkit-background-size: cover;
 
     background-size: cover;
