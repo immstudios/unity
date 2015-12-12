@@ -30,7 +30,7 @@ class UnityEncoder():
         
         self.settings = {
             "passes" : 2,
-            "inter_dir" : "inter",
+            "inter_dir" : "/tmp/",
             "output_dir" : "data",
             "width" : 1280,
             "height" : 720,
@@ -110,7 +110,7 @@ class UnityEncoder():
                 ["c:a", "copy"],
                 ["bsf:v", "h264_mp4toannexb"],
                 ["hls_list_size", "0"],
-                ["hls_segment_filename", os.path.join(odir, "720p-%04d.ts")]
+                ["hls_segment_filename", os.path.join(self.settings["output_dir"], "720p-%04d.ts")]
             ]
 
         #
@@ -134,7 +134,7 @@ class UnityEncoder():
         inter_dir = self.settings["inter_dir"]
         inter_path = os.path.join(inter_dir, "{}.mp4".format(self.base_name))
 
-        if not os.path.exists("inter_dir"):
+        if not os.path.exists(inter_dir):
             os.makedirs(inter_dir)
 
         if not os.path.exists(inter_path):
