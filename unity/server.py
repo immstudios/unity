@@ -41,6 +41,7 @@ class UnityServer():
 
     @cherrypy.expose
     def default(self, attr=""):
+        cherrypy.response.status = 404 
         tpl = self.jinja.get_template("error.html")
         return tpl.render(error_number=404, error_message="Nic takovyho tu neni")
 

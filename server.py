@@ -66,26 +66,10 @@ unity_config = {
 
 if __name__ == '__main__':
 
-    #
-    # Development server
-    #
     cherrypy.config.update({
-        'server.socket_host': '127.0.01',
-        'server.socket_port': 12000,
+        'server.socket_host': config.get("socket_host", '127.0.0.1'),
+        'server.socket_port': config.get("socket_port", 12000),
         })
 
-    logging.info("Starting development server")    
+    logging.info("Starting unity server")    
     cherrypy.quickstart(UnityServer(**unity_config), '/', cherrypy_config)
-
-else:
-
-    #
-    # WSGI entry point
-    #
-
-    cherrypy.server.unsubscribe()
-    cherrypy.engine.start()
-
-    def application(environ, start_response):
-        cherrypy.tree.mount(UnityServer(**unity_config), '/', cherrypy_config)
-        return cherrypy.tree(environ, start_response)
