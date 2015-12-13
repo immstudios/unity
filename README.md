@@ -1,15 +1,10 @@
 unity
 =====
 
-*Pseudolinear broadcast server for next-gen nxtv*
+*Pseudolinear broadcast server for next-gen television*
 
 About the project
 -----------------
-
-### What is it?
-
-Personalized video stream for lazy people.
-
 
 ### Premises
 
@@ -37,14 +32,12 @@ collective rights managers.
 
 ### About the demo
 
-Broadcasted content is taken from [nxtv](http://www.nxtv.cz) project. 
-
+Content is taken from [nxtv](http://www.nxtv.cz) project. 
 
 Prerequisites
 -------------
-
+ - cherrypy `pip install cherrypy`
+ - jinja2 `pip install jinja2`
  - ffmpeg /w libx264 and Fraunhofer FDK AAC support 
-   (use broadcast-tools [inst.ffmpeg](https://raw.githubusercontent.com/opennx/broadcast-tools/master/inst.ffmpeg.sh) script)
- - gpac 0.5.2 or higher (installed automatically with ffmpeg if installer script is used)
- - python 2.7 / 3.X
- - nginx is definitely useful for production, but not needed for testingn 
+   (use broadcast-tools [install.ffmpeg.sh](https://raw.githubusercontent.com/immstudios/installers/master/install.ffmpeg.sh) script)
+ - nginx is definitely useful for production, but not needed for testing
