@@ -7,9 +7,9 @@ import os
 import sys
 import json
 
-#
-# vendor imports
-#
+##
+# Vendor imports
+##
 
 for pname in os.listdir("vendor"):
     pname = os.path.join("vendor", pname)
@@ -19,15 +19,14 @@ for pname in os.listdir("vendor"):
 
 from nxtools import *
  
-#
+##
 # Encoder class
-#
+##
 
 class UnityEncoder():
     def __init__(self, path, **kwargs):
         self.input_path = path
         self.base_name = kwargs.get("base_name", False) or base_name(path)
-        
         self.settings = {
             "passes" : 2,
             "inter_dir" : "/tmp/",
@@ -45,18 +44,16 @@ class UnityEncoder():
             "logo" : "resources/logo.png",
             "expand_levels" : True, 
             }
-
         self.settings.update(kwargs)
-
-
 
 
     def process(self, **kwargs):   
         self.settings.update(kwargs)
+        profile_name = self.settings.get("profile_name", self.settings["video_bitrate"])
 
-        #
+        ##
         # FFMPEG Filters
-        #
+        ##
 
         filter_array = []
         if self.settings.get("logo", False):
@@ -69,11 +66,12 @@ class UnityEncoder():
             filter_array.append("[out][watermark]overlay=0:0[out]")
         filters = ";".join(filter_array)
 
-        #
+        ##
         # Encoding profile
-        #
+        ##
 
         self.profile_pass1 = [
+                ["y", None],
                 ["an", None],
                 ["r", self.settings["frame_rate"]],
                 ["filter:v", filters],
@@ -88,6 +86,7 @@ class UnityEncoder():
             ]
          
         self.profile_pass2 = [
+                ["y", None],
                 ["c:a", "libfdk_aac"],
                 ["b:a", self.settings["audio_bitrate"]],
                 ["ar", self.settings["audio_sample_rate"]],
@@ -104,18 +103,17 @@ class UnityEncoder():
         if self.settings["passes"] == 2:
             self.profile_pass2.append(["pass", 2])
 
-
         self.profile_pack = [
                 ["c:v", "copy"],
                 ["c:a", "copy"],
                 ["bsf:v", "h264_mp4toannexb"],
                 ["hls_list_size", "0"],
-                ["hls_segment_filename", os.path.join(self.settings["output_dir"], "720p-%04d.ts")]
+                ["hls_segment_filename", os.path.join(self.settings["output_dir"], self.base_name, "{}-%04d.ts".format(profile_name))]
             ]
 
-        #
+        ##
         # Clip trimming
-        #
+        ##
 
         mark_in = self.settings.get("mark_in", False)
         mark_out = self.settings.get("mark_out", False)
@@ -125,10 +123,9 @@ class UnityEncoder():
             if mark_in:
                 duration -= mark_in
 
-        #
+        ##
         # Encode media
-        #
-
+        ##
 
         input_path = self.input_path
         inter_dir = self.settings["inter_dir"]
@@ -148,33 +145,33 @@ class UnityEncoder():
         if not os.path.exists(inter_path):
             return False
 
-        #
+        ##
         # Create package
-        #
+        ##
 
         output_dir = os.path.join(self.settings["output_dir"], self.base_name)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        output_path = os.path.join(output_dir, "720p.m3u8")
+        output_path = os.path.join(output_dir, "{}.m3u8".format(profile_name))
        
         ffmpeg(inter_path, output_path, self.profile_pack)
+        
+        ##
+        # Remove log files
+        ##
 
-
-
-
-
+        try:
+            os.remove("ffmpeg2pass-0.log")
+            os.remove("ffmpeg2pass-0.log.mbtree")
+        except:
+            pass
 
 #
 # 
 #
 
-
 if __name__ == "__main__":
 
-    #
-    # Configuration defaults
-    #
-    
     config = {
         "input_dir" : "input",
         "output_dir" :  "output"
@@ -184,5 +181,3 @@ if __name__ == "__main__":
         config.update (json.load(open("local_settings.json")))
     except:
         log_error()
-
-
