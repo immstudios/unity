@@ -22,7 +22,6 @@ for pname in os.listdir("vendor"):
     if not pname in sys.path:
         sys.path.append(pname)  
 
-
 import cherrypy
 
 from nxtools import *
@@ -32,15 +31,18 @@ from unity import *
 # Configuration
 #
 
-try:
-    config = json.load(open("local_settings.json"))
-except:
-    logging.warning("Unable to open configuration file")
-    config = {}
-
-
 APP_ROOT = os.path.abspath(os.path.split(sys.argv[0])[0])
 TEMPLATE_ROOT = os.path.join(APP_ROOT, "site", "templates")
+
+config = {}
+settings_file = os.path.join(APP_ROOT, "local_settings.json")
+if os.path.exists(settings_file):
+    try:
+        config = json.load(open(settings_file))
+    except:
+        log_traceback()
+        logging.warning("Unable to open configuration file")
+
 
 cherrypy_config = {
         '/': {
@@ -56,7 +58,7 @@ cherrypy_config = {
 
 
 unity_config = {
-        "template_root" : TEMPLATE_ROOT    
+        "template_root" : TEMPLATE_ROOT
     }
 
 
@@ -71,5 +73,5 @@ if __name__ == '__main__':
         'server.socket_port': config.get("socket_port", 12000),
         })
 
-    logging.info("Starting unity server")    
+    logging.info("Starting unity server")
     cherrypy.quickstart(UnityServer(**unity_config), '/', cherrypy_config)
